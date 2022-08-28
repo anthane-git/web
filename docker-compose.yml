@@ -1,0 +1,77 @@
+version: '3.9'
+
+services:
+  nginx:
+    image: nginx:alpine
+    container_name: wa-nginx
+    tty: true
+    restart: unless-stopped
+    depends_on:
+      - postgres
+      - nextjs
+      - strapi
+    networks:
+      - public
+    ports:
+      - 8060:80
+      - 463:443
+
+  strapi:
+    image: api
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    container_name: wa-strapi
+    restart: always
+    ports:
+      - 7500:1337
+    depends_on:
+      - postgres
+    env_file:
+      - ./api/.env
+    volumes:
+      - ./api:/app
+    stdin_open: true
+    tty: true
+    networks:
+      - private
+      - public
+
+  postgres:
+    image: postgres:13
+    container_name: wa-postgres
+    restart: always
+    ports:
+      - 7432:5432
+    env_file:
+      - ./api/.env
+    volumes:
+      - postgres:/var/lib/postgresql/data
+    networks:
+      - private
+
+  nextjs:
+    image: view
+    build:
+      context: ./view
+      dockerfile: Dockerfile
+    container_name: wa-nextjs
+    restart: always
+    ports:
+      - 7000:3000
+    env_file:
+      - ./view/.env.development
+    volumes:
+      - ./view:/app
+    stdin_open: true
+    tty: true
+    networks:
+      - public
+
+volumes:
+  postgres:
+    name: strapi-db
+
+networks:
+  private:
+  public:
